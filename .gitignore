@@ -1,0 +1,11 @@
+*.swp
+*.pyc
+/build/
+/.pybuild/
+/*.egg-info/
+/debian/*.substvars
+/debian/*.debhelper
+/debian/*.debhelper.log
+/debian/debhelper-build-stamp
+/debian/files
+/debian/lxmesh

@@ -1,0 +1,22 @@
+#!/usr/bin/python3
+
+import os
+import pathlib
+import site
+import sys
+
+
+if __name__ == '__main__':
+    if sys.argv[0]:
+        exec_path = pathlib.Path(os.path.abspath(os.path.normpath(sys.argv[0])))
+    else:
+        exec_path = pathlib.Path(sys.executable)
+
+    if exec_path.is_relative_to(pathlib.Path('/usr')):
+        site.addsitedir('/usr/lib/lxmesh')
+    else:
+        site.addsitedir(str(exec_path.parent.parent))
+
+    from lxmesh.agent import LXMeshAgent
+    app = LXMeshAgent()
+    app.run()

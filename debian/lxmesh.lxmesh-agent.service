@@ -1,0 +1,49 @@
+[Unit]
+Description=LXMesh Agent
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/lxmesh/bin/lxmesh-agent -c /etc/lxmesh/agent.yaml --systemd
+StandardOutput=journal
+StandardError=journal
+Restart=always
+KillMode=mixed
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+User=lxmesh
+Group=lxmesh
+DynamicUser=yes
+SupplementaryGroups=lxd
+RuntimeDirectory=lxmesh
+StateDirectory=lxmesh
+BindPaths=/var/lib/lxmesh:/var/lib/misc
+BindReadOnlyPaths=-/var/snap/lxd/common/lxd/unix.socket
+TemporaryFileSystem=/run:ro /var:ro
+BindPaths=/var/lib/lxmesh /var/lib/lxmesh:/run
+BindReadOnlyPaths=/var/lib/systemd /dev/log /run/systemd/journal/socket /run/systemd/journal/stdout
+Environment="PYLXD_WARNINGS=none"
+Environment="PYTHONUSERBASE=%t/lxmesh"
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/var/lib/systemd
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectProc=invisible
+PrivateUsers=no
+PrivateIPC=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+RestrictRealtime=yes
+RemoveIPC=yes
+ProcSubset=pid
+SystemCallFilter=@basic-io @chown @file-system @io-event @network-io @signal @sync arch_prctl capget capset clone clone3 kill ioctl mprotect pidfd_open pipe2 uname waitid
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

