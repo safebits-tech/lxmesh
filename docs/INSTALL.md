@@ -33,6 +33,15 @@ package installed, you can install `linux-image-virtual-hwe-22.04` instead:
 $ sudo apt install linux-image-virtual-hwe-22.04
 ```
 
+Please note that use of VRFs, while optional, requires the installation of the
+corresponding `linux-modules-extra-*` package. For example, if the previously
+mentioned `linux-image-virtual-hwe-22.04` package is used, you would need to
+additionally install `linux-image-extra-virtual-hwe-22.04`:
+
+```sh
+$ sudo apt install linux-image-extra-virtual-hwe-22.04
+```
+
 ## Dependencies
 
 Most of the dependencies for LXMesh are available in Ubuntu 22.04, with a single

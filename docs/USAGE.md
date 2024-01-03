@@ -2136,7 +2136,9 @@ The supervisor hosts may have access to networks the containers should not
 communicate with, such as the Internet. The use of VRFs could provide a simple
 solution to this, by using routing tables to restrict forwarding. The following
 is an example of associating the previously-configured `svi-vpc` interface with
-a VRF:
+a VRF. Please note that this requires the installation of the corresponding
+`linux-modules-extra-*` package, as described in the
+[docs/INSTALL.md](/docs/INSTALL.md) file.
 
 ```ini
 # /etc/systemd/network/20-vrf-vpc.netdev
