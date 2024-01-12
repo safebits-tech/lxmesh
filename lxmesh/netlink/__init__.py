@@ -448,12 +448,16 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                                         'right': 'igmp'}},
                              {'drop': None}],
                 },
-                # icmp type != echo-request drop
+                # Normally, only echo-request would be allowed here. However, it
+                # seems that destination-unreachable ICMP messages (including
+                # fragmentation-needed) are not matched by conntrack.
+                # icmp type != { destination-unreachable, echo-request } drop
                 {
                     'chain': 'forward',
                     'expr': [{'match': {'left': {'payload': {'protocol': 'icmp', 'field': 'type'}},
                                         'op': '!=',
-                                        'right': 'echo-request'}},
+                                        'right': {'set': ['destination-unreachable',
+                                                          'echo-request']}}},
                              {'drop': None}],
                 },
                 # meta obrname @multicast-svis meta oifkind "vxlan" icmpv6 type {
@@ -484,7 +488,13 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                 # solicitation and neighbour advertisement messages. The good
                 # news is these use multicast, so no flooding takes place. See
                 # function br_do_suppress_nd() in net/bridge/br_arp_nd_proxy.c.
+                #
+                # Additionally, destination-unreachable and packet-too-big are
+                # not matched by conntrack, for some reason, so they need to be
+                # added here.
                 # icmpv6 type != {
+                #   destination-unreachable,
+                #   packet-too-big,
                 #   echo-request,
                 #   nd-neighbor-solicit,
                 #   nd-neighbor-advert,
@@ -493,7 +503,9 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                     'chain': 'forward',
                     'expr': [{'match': {'left': {'payload': {'protocol': 'icmpv6', 'field': 'type'}},
                                         'op': '!=',
-                                        'right': {'set': ['echo-request',
+                                        'right': {'set': ['destination-unreachable',
+                                                          'packet-too-big',
+                                                          'echo-request',
                                                           'nd-neighbor-solicit',
                                                           'nd-neighbor-advert']}}},
                              {'drop': None}],
@@ -650,12 +662,16 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                                         'right': 'invalid'}},
                              {'drop': None}],
                 },
-                # icmp type echo-request accept
+                # Normally, only echo-request would be allowed here. However, it
+                # seems that destination-unreachable ICMP messages (including
+                # fragmentation-needed) are not matched by conntrack.
+                # icmp type { destination-unreachable, echo-request } accept
                 {
                     'chain': 'postrouting',
                     'expr': [{'match': {'left': {'payload': {'protocol': 'icmp', 'field': 'type'}},
                                         'op': '==',
-                                        'right': 'echo-request'}},
+                                        'right': {'set': ['destination-unreachable',
+                                                          'echo-request']}}},
                              {'accept': None}],
                 },
                 # ether type ip igmp type membership-query accept
@@ -669,7 +685,12 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                                         'right': 'membership-query'}},
                              {'accept': None}],
                 },
+                # ICMP types destination-unreachable and packet-too-big are not
+                # matched by conntrack, for some reason, so they need to be
+                # added here.
                 # icmpv6 type {
+                #   destination-unreachable,
+                #   packet-too-big,
                 #   echo-request,
                 #   mld-listener-query,
                 #   nd-router-advert,
@@ -680,7 +701,9 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                     'chain': 'postrouting',
                     'expr': [{'match': {'left': {'payload': {'protocol': 'icmpv6', 'field': 'type'}},
                                         'op': '==',
-                                        'right': {'set': ['echo-request',
+                                        'right': {'set': ['destination-unreachable',
+                                                          'packet-too-big',
+                                                          'echo-request',
                                                           'mld-listener-query',
                                                           'nd-router-advert',
                                                           'nd-neighbor-solicit',
