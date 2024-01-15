@@ -84,7 +84,7 @@ class NeighbourState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, 
         elif neighbour['flags'] & constants.kernel.NTF_SELF != 0:
             logging.debug("Netlink neighbour '{} lladdr {}' does not have expected flags (0x{:02X}).".format(address, lladdr, neighbour['flags']))
             matches = False
-        elif address.version == 4 and neighbour['flags'] & constants.kernel.NTF_EXT_LEARNED == 0:
+        elif address.version == 4 and neighbour['flags'] & constants.kernel.NTF_EXT_LEARNED != 0:
             logging.debug("Netlink neighbour '{} lladdr {}' does not have expected flags (0x{:02X}).".format(address, lladdr, neighbour['flags']))
             matches = False
         elif address.version == 6 and neighbour['flags'] & constants.kernel.NTF_EXT_LEARNED != 0:
@@ -160,7 +160,7 @@ class NeighbourState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, 
                 elif neighbour['flags'] & constants.kernel.NTF_SELF != 0:
                     logging.debug("Netlink neighbour '{} lladdr {}' on SVI '{}' does not have expected flags (0x{:02X}).".format(address, lladdr, svi.name, neighbour['flags']))
                     matches = False
-                elif address.version == 4 and neighbour['flags'] & constants.kernel.NTF_EXT_LEARNED == 0:
+                elif address.version == 4 and neighbour['flags'] & constants.kernel.NTF_EXT_LEARNED != 0:
                     logging.debug("Netlink neighbour '{} lladdr {}' on SVI '{}' does not have expected flags (0x{:02X}).".format(address, lladdr, svi.name, neighbour['flags']))
                     matches = False
                 elif address.version == 6 and neighbour['flags'] & constants.kernel.NTF_EXT_LEARNED != 0:
@@ -187,7 +187,7 @@ class NeighbourState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, 
                 6:  socket.AF_INET6,
             }[self.address.version]
             flags = {
-                4:  constants.kernel.NTF_EXT_LEARNED,
+                4:  0,
                 6:  0,
             }[self.address.version]
             context.ipr.neigh('replace', family=family, ifindex=svi_index, dst=str(self.address), lladdr=self.lladdr,
