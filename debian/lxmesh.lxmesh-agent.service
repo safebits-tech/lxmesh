@@ -17,10 +17,9 @@ SupplementaryGroups=lxd
 RuntimeDirectory=lxmesh
 StateDirectory=lxmesh
 BindPaths=/var/lib/lxmesh:/var/lib/misc
-BindReadOnlyPaths=-/var/snap/lxd/common/lxd/unix.socket
 TemporaryFileSystem=/run:ro /var:ro
 BindPaths=/var/lib/lxmesh /var/lib/lxmesh:/run
-BindReadOnlyPaths=/var/lib/systemd /dev/log /run/systemd/journal/socket /run/systemd/journal/stdout
+BindReadOnlyPaths=/var/lib/systemd /var/snap/lxd/common /dev/log /run/systemd/journal/socket /run/systemd/journal/stdout
 Environment="PYLXD_WARNINGS=none"
 Environment="PYTHONUSERBASE=%t/lxmesh"
 NoNewPrivileges=yes
