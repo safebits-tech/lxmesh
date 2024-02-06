@@ -911,7 +911,10 @@ class LXDMonitor(threading.Thread):
             # method also forcefully closes the connection if the timeout
             # elapsed.
             if self.ws_client is not None:
-                timeout = min(timeout, self.ws_client.close_expected())
+                try:
+                    timeout = min(timeout, self.ws_client.close_expected())
+                except ValueError:
+                    timeout = 0  # Socket may have been closed, reconnect immediately.
                 if self.ws_client.closed:
                     self.ws_client = None
 
