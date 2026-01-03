@@ -11,8 +11,8 @@ import socket
 import threading
 import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
 
 from lxmesh.netlink.iproute import IPRSocketExtended
 from lxmesh.netlink.nftables import NFProto

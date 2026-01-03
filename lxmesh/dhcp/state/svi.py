@@ -5,10 +5,11 @@ __all__ = ['SVIState']
 import ipaddress
 import logging
 import socket
+import typing
 
-import pyroute2  # type: ignore  # No stubs.
-import pyroute2.netlink  # type: ignore  # No stubs.
-import pyroute2.netlink.rtnl  # type: ignore  # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.rtnl  # type: ignore[import-untyped]
 
 from lxmesh.dhcp.exceptions import DHCPError
 from lxmesh.dhcp.state import DHCPEventContext, DHCPInitialiseContext, DHCPLoadContext, DHCPOperationContext
@@ -230,8 +231,7 @@ class SVIState(StateObject[DHCPEventContext, DHCPInitialiseContext, DHCPLoadCont
                 elif network.version == 6:
                     context.config_file.write('dhcp-range={},static,{},{}\n'.format(network.network_address, network.prefixlen, context.ip6_lease_time))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: DHCPOperationContext, old: SVIState) -> None:
+    def modify(self, context: DHCPOperationContext, old: typing.Self) -> None:
         self.add(context)
 
     def delete(self, context: DHCPOperationContext) -> None:

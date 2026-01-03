@@ -6,15 +6,16 @@ import errno
 import logging
 import os
 import struct
+import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
-import pyroute2.netlink.nfnetlink  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.nfnetlink  # type: ignore[import-untyped]
 from pyroute2.netlink.nfnetlink import nftsocket
 
 from lxmesh.netlink.constants import NFTablesSets
 from lxmesh.netlink.exceptions import NetlinkError
-from lxmesh.netlink.nftables import NFProto, NFTablesRaw
+from lxmesh.netlink.nftables import NFProto
 from lxmesh.netlink.state import NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext
 from lxmesh.state import StateObject
 
@@ -29,7 +30,7 @@ class MarkState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Netli
                                          family=NFProto.BRIDGE, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSET,
                                          attribute_filters=dict(NFTA_SET_TABLE=context.table_name, NFTA_SET_NAME=str(NFTablesSets.marks)))
         attribute_filters = {}
-        attribute_filters[NFTablesRaw.NFTA_SET_ELEM_LIST_TABLE] = context.table_name
+        attribute_filters['NFTA_SET_ELEM_LIST_TABLE'] = context.table_name
         attribute_filters['NFTA_SET_ELEM_LIST_SET'] = str(NFTablesSets.marks)
         context.register_nf_subscription(cls.event_elements, pyroute2.netlink.nfnetlink.NFNLGRP_NFTABLES,
                                          family=NFProto.BRIDGE, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSETELEM,
@@ -146,8 +147,7 @@ class MarkState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Netli
         else:
             logging.info("Added netfilter mark '{}' for interface '{}'.".format(self.mark, self.device))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: MarkState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         try:
             encoded_device = self.device.encode('utf-8')
             if len(encoded_device) > 15:

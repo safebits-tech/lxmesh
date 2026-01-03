@@ -14,8 +14,7 @@ from collections import deque
 from lxmesh.exceptions import ApplicationError
 
 
-# FIXME: Improved support for generics, including different syntax, for Python
-# 3.12.
+# FIXME: replace with generics syntax when mypy supports it.
 
 
 T = typing.TypeVar('T')
@@ -26,7 +25,6 @@ TL = typing.TypeVar('TL', bound='LoadContext[typing.Any, typing.Any, typing.Any,
 TO = typing.TypeVar('TO', bound='OperationContext[typing.Any, typing.Any, typing.Any, typing.Any]')
 
 TSO = typing.TypeVar('TSO', bound='StateObject[typing.Any, typing.Any, typing.Any, typing.Any]')
-TST = typing.TypeVar('TST', bound='StateTable[typing.Any, typing.Any, typing.Any, typing.Any]')
 
 
 class BaseContext(typing.Generic[TE, TI, TL, TO]):
@@ -83,15 +81,15 @@ class OperationContext(BaseContext[TE, TI, TL, TO]):
     pass
 
 
+@typing.dataclass_transform(kw_only_default=True, frozen_default=True)
 class StateObjectType(abc.ABCMeta):
     def __new__(typecls, name: str, bases: tuple[type, ...], namespace: dict[str, typing.Any]) -> StateObjectType:
         namespace['key'] = []
         cls = super().__new__(typecls, name, bases, namespace)
-        # FIXME: will be to set frozen and slots to True once typing.dataclass_transform can be applied and the __init__ dropped.
-        # if '__slots__' in cls.__dict__:
-        #     return cls
-        cls = dataclasses.dataclass(cls, frozen=False, kw_only=True, slots=False)  # type: ignore # FIXME: typeshed does not include this overload.
-        cls.__dict__['key'].extend(field.name for field in dataclasses.fields(cls) if field.metadata.get('lxmesh_key', True))
+        if '__slots__' in cls.__dict__:
+            return cls
+        cls = dataclasses.dataclass(frozen=True, kw_only=True, slots=True)(cls)  # type: ignore[assignment, arg-type] # type hints use type[T]
+        cls.__dict__['key'].extend(field.name for field in dataclasses.fields(cls) if field.metadata.get('lxmesh_key', True))  # type: ignore[arg-type] # StateObjectType is compatible with type[DataclassInstance]
         return cls
 
     @property
@@ -100,10 +98,6 @@ class StateObjectType(abc.ABCMeta):
 
 
 class StateObject(typing.Generic[TE, TI, TL, TO], metaclass=StateObjectType):
-    def __init__(self, **kw: typing.Any) -> None:
-        # FIXME: use typing.dataclass_transform in Python 3.11+.
-        super().__init__(**kw)
-
     @typing.overload
     @staticmethod
     def field(*, default: T, key: bool, **kw: typing.Any) -> T:
@@ -119,8 +113,8 @@ class StateObject(typing.Generic[TE, TI, TL, TO], metaclass=StateObjectType):
     def field(*, key: bool, **kw: typing.Any) -> typing.Any:
         ...
 
-    @staticmethod  # type: ignore # Cannot define default and default_factory, as these are processed by dataclasses.
-    def field(*, key: bool = True, **kw: typing.Any) -> typing.Any:  # FIXME: What's the point of annotating this?
+    @staticmethod  # type: ignore[misc] # Cannot define default and default_factory, as these are processed by dataclasses.
+    def field(*, key: bool = True, **kw: typing.Any) -> typing.Any:
         metadata = kw.pop('metadata', None)
         if metadata is None:
             metadata = {}
@@ -141,7 +135,7 @@ class StateObject(typing.Generic[TE, TI, TL, TO], metaclass=StateObjectType):
     def add(self, context: TO) -> None:
         raise NotImplementedError
 
-    def modify(self: TSO, context: TO, old: TSO) -> None:
+    def modify(self, context: TO, old: typing.Self) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -171,7 +165,7 @@ class StateTableType(type):
 
 
 class StateTable(typing.Generic[TE, TI, TL, TO], metaclass=StateTableType):
-    types: tuple[type[StateObject[TE, TI, TL, TO]]]
+    types: typing.ClassVar[tuple[type[StateObject[TE, TI, TL, TO]]]]  # type: ignore[misc] # FIXME: supported in mypy 1.18+
 
     def __init__(self) -> None:
         self.tables: dict[str, dict[tuple[typing.Any, ...], StateObject[TE, TI, TL, TO]]] = {}
@@ -196,7 +190,7 @@ class StateTable(typing.Generic[TE, TI, TL, TO], metaclass=StateTableType):
 
     def get(self, obj: TSO, default: TSO | None = None, /) -> TSO:
         key = tuple(getattr(obj, key_item) for key_item in type(obj).key)
-        return self.tables[type(obj).__name__].get(key, default)  # type: ignore # It's acceptable to pass None as second argument to Mapping.get()
+        return self.tables[type(obj).__name__].get(key, default)  # type: ignore[arg-type, return-value] # It's acceptable to pass None as second argument to Mapping.get()
 
     def pop(self, obj: TSO, /) -> TSO:
         key = tuple(getattr(obj, key_item) for key_item in type(obj).key)
@@ -253,8 +247,7 @@ class StateTable(typing.Generic[TE, TI, TL, TO], metaclass=StateTableType):
         for table in self.tables.values():
             table.clear()
 
-    # FIXME: replace annotation of other with typing.Self in Python 3.11+.
-    def update(self: TST, other: TST, /) -> None:
+    def update(self, other: typing.Self, /) -> None:
         for table_name, table in self.tables.items():
             table.update(other.tables[table_name])
 
@@ -267,7 +260,7 @@ class StateTable(typing.Generic[TE, TI, TL, TO], metaclass=StateTableType):
 
 
 class StateManager(abc.ABC, typing.Generic[TE, TI, TL, TO]):
-    __state_type__: type[StateTable[TE, TI, TL, TO]]
+    __state_type__: typing.ClassVar[type[StateTable[TE, TI, TL, TO]]]  # type: ignore[misc] # FIXME: supported in mypy 1.18+
 
     def __init_subclass__(cls, *, state_type: type[StateTable[TE, TI, TL, TO]], **kw: typing.Any):
         cls.__state_type__ = state_type

@@ -1,8 +1,47 @@
 [build-system]
 requires = [
     "setuptools >= 39",
+    "setuptools_scm",
 ]
 build-backend = "setuptools.build_meta"
 
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lxmesh*"]
+namespaces = true
+
+[tool.setuptools_scm]
+
 [project]
 name = "lxmesh"
+description = "Modules for LXMesh"
+authors = [
+        {name="Luci Stanescu", email="luci@safebits.tech"},
+]
+license = {text="GPL-3.0"}
+classifiers = [
+        # "Development Status :: 1 - Planning",
+        # "Development Status :: 2 - Pre-Alpha",
+        # "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
+        # "Development Status :: 5 - Production/Stable",
+        # "Development Status :: 6 - Mature",
+        # "Development Status :: 7 - Inactive",
+        "Operating System :: POSIX",
+        "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "nftables >= 1.0.9",
+    "pylxd",
+    "pyroute2 >= 0.7.11",
+    "python-prctl",
+    "systemd-python",
+    "websockets >= 10",
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/safebits-tech/lxmesh"
+documentation = "https://github.com/safebits-tech/lxmesh"
+repository = "https://github.com/safebits-tech/lxmesh"

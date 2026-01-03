@@ -3,13 +3,12 @@ __all__ = ['NFProto', 'NFTablesRaw']
 import binascii
 import collections.abc
 import enum
-import logging
 import struct
 import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
-from pyroute2.netlink.nfnetlink import nftsocket  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+from pyroute2.netlink.nfnetlink import nftsocket  # type: ignore[import-untyped]
 
 
 class NFProto(enum.IntEnum):
@@ -26,13 +25,6 @@ class NFProto(enum.IntEnum):
 
 
 class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
-    if 'NFTA_SET_ELEM_LIST_TABLE' in dict(nftsocket.nft_set_elem_list_msg.nla_map):
-        NFTA_SET_ELEM_LIST_TABLE = 'NFTA_SET_ELEM_LIST_TABLE'
-        logging.warning("Patch for silly name no longer required.")
-    else:
-        NFTA_SET_ELEM_LIST_TABLE = 'NFTA_SET_TABLE'
-        nftsocket.nft_set_elem_list_msg.prefix = 'NFTA_SET_'
-
     def __init__(self) -> None:
         super().__init__(nfgen_family=NFProto.UNSPEC)
 
@@ -128,7 +120,7 @@ class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
         modifier.header = None
         msg = nftsocket.nft_set_elem_list_msg()
         msg['attrs'] = [
-            (self.NFTA_SET_ELEM_LIST_TABLE, table_name),
+            ('NFTA_SET_ELEM_LIST_TABLE', table_name),
             ('NFTA_SET_ELEM_LIST_SET', set_name),
         ]
         self._nfgen_family = family
@@ -183,7 +175,7 @@ class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
                 self.begin()
                 msg = nftsocket.nft_set_elem_list_msg()
                 msg['attrs'] = [
-                    (self.NFTA_SET_ELEM_LIST_TABLE, table_name),
+                    ('NFTA_SET_ELEM_LIST_TABLE', table_name),
                     ('NFTA_SET_ELEM_LIST_SET', set_name),
                     ('NFTA_SET_ELEM_LIST_ELEMENTS', [{'attrs': element_attributes}]),
                 ]
@@ -194,7 +186,7 @@ class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
                 self.begin()
                 msg = nftsocket.nft_set_elem_list_msg()
                 msg['attrs'] = [
-                    (self.NFTA_SET_ELEM_LIST_TABLE, table_name),
+                    ('NFTA_SET_ELEM_LIST_TABLE', table_name),
                     ('NFTA_SET_ELEM_LIST_SET', set_name),
                     ('NFTA_SET_ELEM_LIST_ELEMENTS', [{'attrs': element_attributes}]),
                 ]
@@ -202,7 +194,7 @@ class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
 
                 msg = nftsocket.nft_set_elem_list_msg()
                 msg['attrs'] = [
-                    (self.NFTA_SET_ELEM_LIST_TABLE, table_name),
+                    ('NFTA_SET_ELEM_LIST_TABLE', table_name),
                     ('NFTA_SET_ELEM_LIST_SET', set_name),
                     ('NFTA_SET_ELEM_LIST_ELEMENTS', [{'attrs': element_attributes}]),
                 ]
@@ -223,7 +215,7 @@ class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
 
         msg = nftsocket.nft_set_elem_list_msg()
         msg['attrs'] = [
-            (self.NFTA_SET_ELEM_LIST_TABLE, table_name),
+            ('NFTA_SET_ELEM_LIST_TABLE', table_name),
             ('NFTA_SET_ELEM_LIST_SET', set_name),
             ('NFTA_SET_ELEM_LIST_ELEMENTS', [{'attrs': element_attributes}]),
         ]

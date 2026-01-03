@@ -11,7 +11,7 @@ import types
 import typing
 import weakref
 
-import pyroute2.netlink  # type: ignore # No stubs.
+import pyroute2.netlink  # type: ignore[import-untyped]
 
 from lxmesh.dhcp.exceptions import DHCPError
 from lxmesh.dhcp.io import FileReplacement

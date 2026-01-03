@@ -15,7 +15,7 @@ import websockets.exceptions
 import websockets.frames
 import websockets.uri
 try:
-    from websockets.client import ClientProtocol as WSClientProtocol  # type: ignore  # Will exist in a future version.
+    from websockets.client import ClientProtocol as WSClientProtocol  # type: ignore[attr-defined]  # Will exist in a future version.
 except ImportError:
     from websockets.client import ClientConnection as WSClientProtocol
 

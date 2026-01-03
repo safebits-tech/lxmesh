@@ -2,22 +2,25 @@ Source: lxmesh
 Section: net
 Priority: optional
 Maintainer: Luci Stanescu <luci@safebits.tech>
-Build-Depends: debhelper-compat (= 13),
-    dh-python,
-    flake8,
-    mypy,
-    pybuild-plugin-pyproject,
-    python3-all,
-    python3-setuptools,
-    python3-typeshed,
-Standards-Version: 4.6.0
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-python3,
+ flake8,
+ mypy,
+ pybuild-plugin-pyproject,
+ python3-all,
+ python3-setuptools,
+ python3-setuptools-scm,
+ python3-typeshed,
+Standards-Version: 4.6.2
 Rules-Requires-Root: no
-X-Python3-Version: >= 3.10
+X-Python3-Version: >= 3.12
 
 Package: lxmesh
 Architecture: all
-Depends: ${misc:Depends},
-    ${python3:Depends},
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
 Recommends: dnsmasq-base, frr (>= 9.0.1)
 Description: Controller for EVPN-connected LXD containers
  This package contains the LXMesh agent, a control plane application

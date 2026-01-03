@@ -5,9 +5,9 @@ import logging
 import os
 import socket
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
-import pyroute2.netlink.rtnl  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.rtnl  # type: ignore[import-untyped]
 
 from lxmesh.netlink import constants
 from lxmesh.netlink.exceptions import NetlinkError

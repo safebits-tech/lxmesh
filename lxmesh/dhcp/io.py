@@ -13,7 +13,7 @@ import typing
 from lxmesh.dhcp.exceptions import DHCPError
 
 
-@io.TextIOBase.register  # type: ignore  # This is fine, mypy complains for no reason.
+@io.TextIOBase.register
 class FileReplacement:
     def __init__(self, path: str, mode: int, group: str | None) -> None:
         dirname, filename = os.path.split(path)

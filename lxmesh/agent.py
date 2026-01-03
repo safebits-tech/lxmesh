@@ -14,7 +14,7 @@ import sys
 import time
 import types
 
-import prctl  # type: ignore # No stubs.
+import prctl  # type: ignore[import-untyped]
 
 from lxmesh.config import AgentConfig
 from lxmesh.dhcp import DHCPManager, DHCPSupervisor
@@ -233,7 +233,7 @@ class LXMeshAgent:
             lxd_manager = LXDManager(lxd_monitor=lxd_monitor,
                                      dhcp_manager=dhcp_manager,
                                      netlink_manager=netlink_manager,
-                                     tags_enum=TagsBase('Tags', config.tag_items),  # type: ignore # FIXME: mypy doesn't realise this creates a new enum.
+                                     tags_enum=TagsBase('Tags', config.tag_items),  # type: ignore[arg-type, call-arg] # FIXME: mypy doesn't realise this creates a new enum.
                                      default_svi_config=lxd_default_svi_config,
                                      svi_config=lxd_svi_config,
                                      enforce_eth_address=config.lxd.enforce_eth_address,

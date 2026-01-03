@@ -6,10 +6,11 @@ import itertools
 import logging
 import os
 import socket
+import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
-import pyroute2.netlink.rtnl  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.rtnl  # type: ignore[import-untyped]
 
 from lxmesh.netlink.exceptions import NetlinkError
 from lxmesh.netlink.state import NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext, NetlinkSVI
@@ -179,8 +180,7 @@ class VXLANState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Netl
         else:
             logging.info("Configured VXLAN interface '{}' for SVI '{}'.".format(self.index, self.svi))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: VXLANState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         self.add(context)
 
     def delete(self, context: NetlinkOperationContext) -> None:

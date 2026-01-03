@@ -20,7 +20,6 @@ from lxmesh.exceptions import ApplicationError
 
 
 T = typing.TypeVar('T')
-TS = typing.TypeVar('TS', bound='ConfigSection')
 
 
 class Boolean(int):
@@ -82,7 +81,7 @@ class Duration(timedelta):
 
 
 class LogLevel(int):
-    def __new__(cls: type[T], value: typing.Any) -> T:
+    def __new__(cls, value: typing.Any) -> typing.Self:
         try:
             if isinstance(value, int):
                 result = value
@@ -112,7 +111,7 @@ class ConfigSection:
                 assert typing.get_origin(subtype) is None
 
         for field in dataclasses.fields(cls):
-            field_type = cls.evaluate_type(field.type, cls)
+            field_type = ConfigSection.evaluate_type(field.type, cls)
             type_origin = typing.get_origin(field_type)
             type_args = typing.get_args(field_type)
             assert type_origin in (None, list, typing.Union, types.UnionType)
@@ -169,12 +168,14 @@ class ConfigSection:
             return cls.convert_basic(type, value)
 
     @classmethod
-    def from_yaml(cls: type[TS], /,
-                  config: dict[str, typing.Any]) -> TS:
+    def from_yaml(cls, /,
+                  config: dict[str, typing.Any]) -> typing.Self:
+        if not dataclasses.is_dataclass(cls):
+            raise RuntimeError("method can only be called on dataclass subclasses")
         fields = {field.name.replace('_', '-'): field for field in dataclasses.fields(cls)}
         missing_fields = {field_name for field_name, field in fields.items()
                           if (field.default is dataclasses.MISSING
-                              and field.default_factory is dataclasses.MISSING)}  # type: ignore # default_factory check is fine.
+                              and field.default_factory is dataclasses.MISSING)}
 
         arguments = {}
 
@@ -185,7 +186,7 @@ class ConfigSection:
                 logging.warning("Unknown configuration option: '{}'.".format(key))
                 continue
 
-            field_type = cls.evaluate_type(field.type, cls)
+            field_type = ConfigSection.evaluate_type(field.type, cls)
 
             if isinstance(field_type, type) and issubclass(field_type, ConfigSection):
                 if value is not None and not isinstance(value, dict):
@@ -213,7 +214,7 @@ class ConfigSection:
                     value = subobjects
                 else:
                     try:
-                        value = cls.convert_complex(field_type, value)
+                        value = ConfigSection.convert_complex(field_type, value)
                     except ValueError as e:
                         logging.warning("Ignoring invalid value for configuration option '{}': {} ({}).".format(key, value, e))
                         continue
@@ -223,7 +224,7 @@ class ConfigSection:
 
         for key in list(missing_fields):
             field = fields[key]
-            field_type = cls.evaluate_type(field.type, cls)
+            field_type = ConfigSection.evaluate_type(field.type, cls)
             if issubclass(field_type, ConfigSection):
                 value = field_type.from_yaml({})
             else:
@@ -239,7 +240,7 @@ class ConfigSection:
         if missing_fields:
             raise ApplicationError("missing configuration options: {}".format(", ".join(missing_fields)))
 
-        return cls(**arguments)
+        return cls(**arguments)  # type: ignore[return-value]  # mypy restricts type to DataclassInstance after dataclass test
 
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)

@@ -12,8 +12,8 @@ import threading
 import time
 import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
 
 from lxmesh.dhcp.exceptions import DHCPError
 from lxmesh.dhcp.io import FileReplacement
@@ -173,12 +173,10 @@ class DHCPSupervisor(threading.Thread):
                 pid_fd = None
 
             if now >= next_start:
-                # FIXME: mypy complaining about empty dict?!
-                env: dict[bytes, bytes] = {}
                 try:
                     server_pid = os.posix_spawnp(self.executable,
                                                  [self.executable] + self.arguments,
-                                                 env)
+                                                 {})
                 except OSError as e:
                     logging.error("Failed to spawn DHCP server: {} ({}).".format(os.strerror(e.errno), e.errno))
                     next_start = now + self.restart_interval
@@ -186,7 +184,7 @@ class DHCPSupervisor(threading.Thread):
                     logging.info("Started DHCP server process '{}'.".format(server_pid))
                     next_start = float('inf')
                     try:
-                        pid_fd: int = os.pidfd_open(server_pid)  # type: ignore # FIXME: typeshed does not define function.
+                        pid_fd = os.pidfd_open(server_pid)
                     except OSError as e:
                         logging.error("Failed to open pidfd for DHCP server: {} ({}).".format(os.strerror(e.errno), e.errno))
                     else:

@@ -4,6 +4,7 @@ __all__ = ['HostState']
 
 import ipaddress
 import logging
+import typing
 
 from lxmesh.dhcp.state import DHCPEventContext, DHCPInitialiseContext, DHCPLoadContext, DHCPOperationContext
 from lxmesh.state import StateObject
@@ -12,7 +13,7 @@ from lxmesh.state import StateObject
 class HostState(StateObject[DHCPEventContext, DHCPInitialiseContext, DHCPLoadContext, DHCPOperationContext]):
     svi:            str
     device_address: str
-    name:           str                             = StateObject.field(key=False)
+    name:           str | None                      = StateObject.field(key=False)
     ip4_address:    ipaddress.IPv4Address | None    = StateObject.field(key=False)
     ip6_address:    ipaddress.IPv6Address | None    = StateObject.field(key=False)
 
@@ -39,8 +40,7 @@ class HostState(StateObject[DHCPEventContext, DHCPInitialiseContext, DHCPLoadCon
             context.hosts_file.write(',[{}]'.format(self.ip6_address))
         context.hosts_file.write('\n')
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: DHCPOperationContext, old: HostState) -> None:
+    def modify(self, context: DHCPOperationContext, old: typing.Self) -> None:
         self.add(context)
 
     def delete(self, context: DHCPOperationContext) -> None:

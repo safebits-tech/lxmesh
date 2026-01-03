@@ -4,11 +4,11 @@ import ipaddress
 import socket
 import typing
 
-import pyroute2  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
 from pyroute2 import netlink, protocols
-from pyroute2.common import hexdump  # type: ignore # No stubs.
-from pyroute2.netlink import nla, nlmsg, rtnl  # type: ignore # No stubs.
-from pyroute2.netlink.rtnl.marshal import MarshalRtnl  # type: ignore # No stubs.
+from pyroute2.common import hexdump  # type: ignore[import-untyped]
+from pyroute2.netlink import nla, nlmsg, rtnl  # type: ignore[import-untyped]
+from pyroute2.netlink.rtnl.marshal import MarshalRtnl  # type: ignore[import-untyped]
 
 
 class mdb_entry_base(nla):  # type: ignore[misc]  # No stubs.
@@ -178,7 +178,7 @@ class IPRouteExtended(pyroute2.IPRoute):  # type: ignore[misc]  # No stubs.
         command_type:   int
         flags:          int
         msgcls:         type[mdbmsg_base]
-        (command_type, flags, msgcls) = commands.get(command, command)  # type: ignore # Ugly, but following pyroute2 convention.
+        (command_type, flags, msgcls) = commands.get(command, command)  # type: ignore[arg-type] # Ugly, but following pyroute2 convention.
         msg = msgcls()
         for field in msg.fields:
             msg[field[0]] = kwarg.pop(field[0], 0)

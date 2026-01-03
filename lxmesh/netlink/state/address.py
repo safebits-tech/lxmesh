@@ -13,14 +13,14 @@ import struct
 import typing
 from collections import deque
 
-import pyroute2  # type: ignore # No stubs
-import pyroute2.netlink  # type: ignore # No stubs
-import pyroute2.netlink.nfnetlink  # type: ignore # No stubs
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.nfnetlink  # type: ignore[import-untyped]
 from pyroute2.netlink.nfnetlink import nftsocket
 
 from lxmesh.netlink.constants import NFTablesSets
 from lxmesh.netlink.exceptions import NetlinkError
-from lxmesh.netlink.nftables import NFProto, NFTablesRaw
+from lxmesh.netlink.nftables import NFProto
 from lxmesh.netlink.state import NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext
 from lxmesh.state import StateObject
 
@@ -30,7 +30,7 @@ T = typing.TypeVar('T')
 
 class ValidatedAddressState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext]):
     device: str
-    family: typing.Literal[socket.AF_BRIDGE, socket.AF_INET, socket.AF_INET6]  # type: ignore # FIXME: this is going to work at one point (mypy >= 1.6?).
+    family: typing.Literal[socket.AF_BRIDGE, socket.AF_INET, socket.AF_INET6]  # type: ignore[valid-type]  # FIXME: this is going to work at one point (mypy >= 1.6?).
     address: ipaddress.IPv4Address | ipaddress.IPv6Address | str
 
     @classmethod
@@ -40,7 +40,7 @@ class ValidatedAddressState(StateObject[NetlinkEventContext, NetlinkInitialiseCo
                                              family=NFProto.BRIDGE, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSET,
                                              attribute_filters=dict(NFTA_SET_TABLE=context.table_name, NFTA_SET_NAME=str(set_name)))
             attribute_filters = {}
-            attribute_filters[NFTablesRaw.NFTA_SET_ELEM_LIST_TABLE] = context.table_name
+            attribute_filters['NFTA_SET_ELEM_LIST_TABLE'] = context.table_name
             attribute_filters['NFTA_SET_ELEM_LIST_SET'] = str(set_name)
             context.register_nf_subscription(cls.event_elements, pyroute2.netlink.nfnetlink.NFNLGRP_NFTABLES,
                                              family=NFProto.BRIDGE, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSETELEM,
@@ -62,7 +62,7 @@ class ValidatedAddressState(StateObject[NetlinkEventContext, NetlinkInitialiseCo
             str(NFTablesSets.ip4_addresses):    socket.AF_INET,
             str(NFTablesSets.ip6_addresses):    socket.AF_INET6,
         }[set_name]
-        # FIXME: annotate with typing.Self in Python 3.11+.
+        # FIXME: typing.Self would've been more appropriate here if supported.
         active_objects: deque[ValidatedAddressState] = deque()
         while True:
             try:
@@ -217,8 +217,7 @@ class ValidatedAddressState(StateObject[NetlinkEventContext, NetlinkInitialiseCo
         else:
             logging.info("Added validated address '{}' for interface '{}'.".format(self.address, self.device))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: ValidatedAddressState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         encoded_device = self.device.encode('utf-8')
         if len(encoded_device) > 15:
             raise NetlinkError("failed to update validated address because device name exceeds 15 characters: {}".format(self.device))

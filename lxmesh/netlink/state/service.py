@@ -12,14 +12,14 @@ import struct
 import typing
 from collections import deque
 
-import pyroute2  # type: ignore # No stubs
-import pyroute2.netlink  # type: ignore # No stubs
-import pyroute2.netlink.nfnetlink  # type: ignore # No stubs
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.nfnetlink  # type: ignore[import-untyped]
 from pyroute2.netlink.nfnetlink import nftsocket
 
 from lxmesh.netlink.constants import NFTablesSets
 from lxmesh.netlink.exceptions import NetlinkError
-from lxmesh.netlink.nftables import NFProto, NFTablesRaw
+from lxmesh.netlink.nftables import NFProto
 from lxmesh.netlink.state import NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext
 from lxmesh.state import StateObject
 
@@ -40,7 +40,7 @@ class ServiceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
                                              family=NFProto.BRIDGE, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSET,
                                              attribute_filters=dict(NFTA_SET_TABLE=context.table_name, NFTA_SET_NAME=set_name))
             attribute_filters = {}
-            attribute_filters[NFTablesRaw.NFTA_SET_ELEM_LIST_TABLE] = context.table_name
+            attribute_filters['NFTA_SET_ELEM_LIST_TABLE'] = context.table_name
             attribute_filters['NFTA_SET_ELEM_LIST_SET'] = set_name
             context.register_nf_subscription(cls.event_elements, pyroute2.netlink.nfnetlink.NFNLGRP_NFTABLES,
                                              family=NFProto.BRIDGE, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSETELEM,
@@ -81,10 +81,13 @@ class ServiceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
         set_name = elements.get_attr('NFTA_SET_ELEM_LIST_SET')
         if set_name is None:
             return
-        direction = {
-            str(NFTablesSets.in_services):  'in',
-            str(NFTablesSets.out_services): 'out',
-        }[set_name]
+        direction: typing.Literal['in', 'out']
+        if set_name == str(NFTablesSets.in_services):
+            direction = 'in'
+        elif set_name == str(NFTablesSets.out_services):
+            direction = 'out'
+        else:
+            raise ValueError("unsupported set name")
         element_list = elements.get_attr('NFTA_SET_ELEM_LIST_ELEMENTS')
         if element_list is None:
             return
@@ -148,6 +151,7 @@ class ServiceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
 
         results_in = context.nft_raw.get_elements(NFProto.BRIDGE, context.table_name, str(NFTablesSets.in_services))
         results_out = context.nft_raw.get_elements(NFProto.BRIDGE, context.table_name, str(NFTablesSets.out_services))
+        results_combined: itertools.chain[tuple[tuple[typing.Literal['in', 'out'], NFTablesSets], tuple[bytes, bytes | None]]]
         results_combined = itertools.chain(
             zip(itertools.repeat(('in', NFTablesSets.in_services)),
                 handle_netlink_error(results_in, 'bridge {} {}'.format(context.table_name, NFTablesSets.in_services))),
@@ -212,8 +216,7 @@ class ServiceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
         else:
             logging.info("Added {} service '{}/{}' for interface '{}'.".format(self.direction, self.protocol, self.port, self.device))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: ServiceState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         try:
             encoded_device = self.device.encode('utf-8')
             if len(encoded_device) > 15:

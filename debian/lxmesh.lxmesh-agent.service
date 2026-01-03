@@ -18,7 +18,6 @@ RuntimeDirectory=lxmesh
 StateDirectory=lxmesh
 BindPaths=/var/lib/lxmesh:/var/lib/misc
 TemporaryFileSystem=/run:ro /var:ro
-BindPaths=/var/lib/lxmesh /var/lib/lxmesh:/run
 BindReadOnlyPaths=/var/lib/systemd /var/snap/lxd/common /dev/log /run/systemd/journal/socket /run/systemd/journal/stdout
 Environment="PYLXD_WARNINGS=none"
 Environment="PYTHONUSERBASE=%t/lxmesh"

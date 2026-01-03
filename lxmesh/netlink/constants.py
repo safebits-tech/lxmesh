@@ -35,8 +35,7 @@ class kernel(enum.IntEnum):
     MDB_FLAGS_BLOCKED       = (1 << 3)
 
 
-# FIXME: change to StrEnum in Python 3.11.
-class NFTablesSets(enum.Enum):
+class NFTablesSets(enum.StrEnum):
     svis            = 'svis'
     multicast_svis  = 'multicast-svis'
     marks           = 'marks'
@@ -45,6 +44,3 @@ class NFTablesSets(enum.Enum):
     ip6_addresses   = 'ip6-addresses'
     in_services     = 'in-services'
     out_services    = 'out-services'
-
-    def __str__(self) -> str:
-        return self.value

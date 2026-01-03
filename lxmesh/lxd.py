@@ -23,8 +23,8 @@ import types
 import uuid
 import weakref
 
-import pylxd  # type: ignore # No stubs.
-import pylxd.models.container  # type: ignore # No stubs.
+import pylxd  # type: ignore[import-untyped]
+import pylxd.models.container  # type: ignore[import-untyped]
 import websockets.exceptions
 
 from lxmesh.dhcp import DHCPManager, DHCPState
@@ -73,7 +73,7 @@ class TagsBase(enum.IntFlag):
 
 
 class Service(typing.NamedTuple):
-    protocol:   str
+    protocol:   typing.Literal['sctp', 'tcp', 'udp']
     port:       int
 
     @classmethod
@@ -84,6 +84,7 @@ class Service(typing.NamedTuple):
             raise ValueError("expected 'protocol/port'") from None
         if protocol not in ('sctp', 'tcp', 'udp'):
             raise ValueError("unknown protocol '{}'".format(protocol)) from None
+        protocol = typing.cast(typing.Literal['sctp', 'tcp', 'udp'], protocol)  # FIXME: this shouldn't be needed by mypy.
         try:
             port = int(port_str, 10)
             if not (0 < port < 2**16):
@@ -145,7 +146,7 @@ class LXDNetworkDevice:
 
     @property
     def instance_name(self) -> str | None:
-        return self.__dict__.get('instance_name', None)
+        return typing.cast(str | None, self.__dict__.get('instance_name', None))
 
     @instance_name.setter
     def instance_name(self, value: str | None) -> None:
@@ -166,7 +167,7 @@ class LXDNetworkDevice:
 
     @property
     def svi(self) -> str | None:
-        return self.__dict__.get('svi', None)
+        return typing.cast(str | None, self.__dict__.get('svi', None))
 
     @svi.setter
     def svi(self, value: str | None) -> None:
@@ -207,8 +208,7 @@ class LXDNetworkDevice:
 
                 @exit_stack.push
                 def dhcp_register_old_svi(exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: types.TracebackType | None) -> bool:
-                    if exc_type is not None and old_value is not None:
-                        # FIXME: old_value check only included for mypy.
+                    if exc_type is not None:
                         self.dhcp_manager.register_svi(old_value)
                     return False
 
@@ -216,8 +216,7 @@ class LXDNetworkDevice:
 
                 @exit_stack.push
                 def netlink_register_old_svi(exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: types.TracebackType | None) -> bool:
-                    if exc_type is not None and old_value is not None:
-                        # FIXME: old_value check only included for mypy.
+                    if exc_type is not None:
                         self.netlink_manager.register_svi(old_value)
                     return False
 
@@ -226,8 +225,7 @@ class LXDNetworkDevice:
 
                 @exit_stack.push
                 def dhcp_unregister_new_svi(exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: types.TracebackType | None) -> bool:
-                    if exc_type is not None and value is not None:
-                        # FIXME: value check only included for mypy.
+                    if exc_type is not None:
                         self.dhcp_manager.unregister_svi(value)
                     return False
 
@@ -235,8 +233,7 @@ class LXDNetworkDevice:
 
                 @exit_stack.push
                 def netlink_unregister_new_svi(exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: types.TracebackType | None) -> bool:
-                    if exc_type is not None and value is not None:
-                        # FIXME: value check only included for mypy.
+                    if exc_type is not None:
                         self.netlink_manager.unregister_svi(value)
                     return False
 
@@ -265,7 +262,7 @@ class LXDNetworkDevice:
 
     @property
     def device_name(self) -> str | None:
-        return self.__dict__.get('device_name', None)
+        return typing.cast(str | None, self.__dict__.get('device_name', None))
 
     @device_name.setter
     def device_name(self, value: str | None) -> None:
@@ -330,7 +327,7 @@ class LXDNetworkDevice:
 
     @property
     def device_address(self) -> str | None:
-        return self.__dict__.get('device_address', None)
+        return typing.cast(str | None, self.__dict__.get('device_address', None))
 
     @device_address.setter
     def device_address(self, value: str | None) -> None:
@@ -385,7 +382,7 @@ class LXDNetworkDevice:
 
     @property
     def tags(self) -> frozenset[TagsBase]:
-        return self.__dict__.get('tags', frozenset())
+        return typing.cast(frozenset[TagsBase], self.__dict__.get('tags', frozenset()))
 
     @tags.setter
     def tags(self, value: collections.abc.Iterable[TagsBase]) -> None:
@@ -417,7 +414,7 @@ class LXDNetworkDevice:
 
     @property
     def ip4_address(self) -> ipaddress.IPv4Address | None:
-        return self.__dict__.get('ip4_address', None)
+        return typing.cast(ipaddress.IPv4Address | None, self.__dict__.get('ip4_address', None))
 
     @ip4_address.setter
     def ip4_address(self, value: ipaddress.IPv4Address | None) -> None:
@@ -460,7 +457,7 @@ class LXDNetworkDevice:
 
     @property
     def ip6_address(self) -> ipaddress.IPv6Address | None:
-        return self.__dict__.get('ip6_address', None)
+        return typing.cast(ipaddress.IPv6Address | None, self.__dict__.get('ip6_address', None))
 
     @ip6_address.setter
     def ip6_address(self, value: ipaddress.IPv6Address | None) -> None:
@@ -503,7 +500,7 @@ class LXDNetworkDevice:
 
     @property
     def ip6_link_address(self) -> ipaddress.IPv6Address | None:
-        return self.__dict__.get('ip6_link_address', None)
+        return typing.cast(ipaddress.IPv6Address | None, self.__dict__.get('ip6_link_address', None))
 
     @ip6_link_address.setter
     def ip6_link_address(self, value: ipaddress.IPv6Address | None) -> None:
@@ -534,7 +531,7 @@ class LXDNetworkDevice:
 
     @property
     def in_services(self) -> frozenset[Service]:
-        return self.__dict__.get('in_services', frozenset())
+        return typing.cast(frozenset[Service], self.__dict__.get('in_services', frozenset()))
 
     @in_services.setter
     def in_services(self, value: collections.abc.Iterable[Service]) -> None:
@@ -554,7 +551,7 @@ class LXDNetworkDevice:
 
     @property
     def out_services(self) -> frozenset[Service]:
-        return self.__dict__.get('out_services', frozenset())
+        return typing.cast(frozenset[Service], self.__dict__.get('out_services', frozenset()))
 
     @out_services.setter
     def out_services(self, value: collections.abc.Iterable[Service]) -> None:
@@ -875,7 +872,7 @@ class LXDMonitor(threading.Thread):
 
             # Cleanly close LXD events socket if we've been asked to stop.
             if self.stopped:
-                ws_client: NonblockingWSClient = self.ws_client  # type: ignore # self.ws_client is never None considering loop condition above.
+                ws_client: NonblockingWSClient = self.ws_client  # type: ignore[assignment] # self.ws_client is never None considering loop condition above.
                 if ws_client.closed:
                     break
                 try:

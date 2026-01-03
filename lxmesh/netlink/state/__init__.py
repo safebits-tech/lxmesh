@@ -10,9 +10,9 @@ import types
 import typing
 import weakref
 
-import nftables as libnftables  # type: ignore # No stubs.
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
+import nftables as libnftables  # type: ignore[import-untyped]
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
 
 from lxmesh.netlink.exceptions import NetlinkError
 from lxmesh.netlink.monitor import NetlinkMonitor

@@ -11,9 +11,9 @@ import os
 import typing
 from collections import deque
 
-import pyroute2  # type: ignore # No stubs
-import pyroute2.netlink  # type: ignore # No stubs
-import pyroute2.netlink.nfnetlink  # type: ignore # No stubs
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.nfnetlink  # type: ignore[import-untyped]
 from pyroute2.netlink.nfnetlink import nftsocket
 
 from lxmesh.netlink.exceptions import NetlinkError
@@ -22,9 +22,8 @@ from lxmesh.netlink.state import NetlinkEventContext, NetlinkInitialiseContext, 
 from lxmesh.state import StateObject
 
 
-# FIXME: Replace with type statement in Python 3.12.
-TableSpecType: typing.TypeAlias = dict[typing.Literal['table', 'set', 'map', 'chain', 'rule'],
-                                       list[dict[str, typing.Any]]]
+type TableSpecType = dict[typing.Literal['table', 'set', 'map', 'chain', 'rule'],  # type: ignore[valid-type]
+                          list[dict[str, typing.Any]]]
 
 
 class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext]):
@@ -378,8 +377,7 @@ class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
         else:
             logging.info("Added netfilter table '{} {}'.".format(self.family, self.name))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: NFTableState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         self.add(context)
 
     def delete(self, context: NetlinkOperationContext) -> None:

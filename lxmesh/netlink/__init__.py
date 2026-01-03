@@ -3,8 +3,9 @@ __all__ = ['NetlinkManager', 'NetlinkState', 'NetlinkSVIConfig']
 import ipaddress
 import logging
 import os
+import typing
 
-import nftables as libnftables  # type: ignore # No stubs.
+import nftables as libnftables  # type: ignore[import-untyped]
 
 import lxmesh.netlink.fixup  # noqa: FIXME this won't be necessary at some point, but must come first
 from lxmesh.netlink.constants import NFTablesSets
@@ -70,6 +71,7 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
 
         have_multicast = default_svi_config.multicast or any(config.multicast for config in svi_config.values())
 
+        nf_table_bridge_spec: dict[typing.Literal['table', 'set', 'map', 'chain', 'rule'], list[dict[str, typing.Any]]]
         nf_table_bridge_spec = {
             'set': [
                 {
@@ -316,32 +318,21 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
                                         'op': '==',
                                         'right': {'set': ['echo-request',
                                                           'nd-router-solicit',
-                                                          'nd-neighbor-solicit',
-                                                          'nd-neighbor-advert']}}},
+                                                          'nd-neighbor-solicit']}}},
                              {'accept': None}],
                 },
-                # FIXME: This will be possible with nftables 1.0.9. Also, drop
-                # nd-neighbor-advert from rule above.
-                #
-                # Unfortunately, without this, spoofing neighbour
-                # advertisements is possible and, therefore, intercepting
-                # communication.
-                #
-                # With nftables 1.0.3, raw payload expressions can be used in
-                # concatenations.
-                #
                 # icmpv6 type nd-neighbor-advert meta iifname . icmpv6 taddr @ip6-addresses accept
-                # {
-                #     'chain': 'prerouting',
-                #     'expr': [{'match': {'left': {'payload': {'protocol': 'icmpv6', 'field': 'type'}},
-                #                         'op': '==',
-                #                         'right': 'nd-neighbor-advert'}},
-                #              {'match': {'left': {'concat': [{'meta': {'key': 'iifname'}},
-                #                                             {'payload': {'protocol': 'icmpv6', 'field': 'taddr'}}]},
-                #                         'op': '==',
-                #                         'right': '@' + str(NFTablesSets.ip6_addresses)}},
-                #              {'accept': None}],
-                # },
+                {
+                    'chain': 'prerouting',
+                    'expr': [{'match': {'left': {'payload': {'protocol': 'icmpv6', 'field': 'type'}},
+                                        'op': '==',
+                                        'right': 'nd-neighbor-advert'}},
+                             {'match': {'left': {'concat': [{'meta': {'key': 'iifname'}},
+                                                            {'payload': {'protocol': 'icmpv6', 'field': 'taddr'}}]},
+                                        'op': '==',
+                                        'right': '@' + str(NFTablesSets.ip6_addresses)}},
+                             {'accept': None}],
+                },
                 # meta protocol ip udp sport 68 udp dport 67 accept
                 {
                     'chain': 'prerouting',
@@ -755,6 +746,7 @@ class NetlinkManager(StateManager[NetlinkEventContext, NetlinkInitialiseContext,
         self.nf_table_map[obj.family, obj.name] = NFTable()
         self.add(obj)
 
+        nf_table_inet_spec: dict[typing.Literal['table', 'set', 'map', 'chain', 'rule'], list[dict[str, typing.Any]]]
         nf_table_inet_spec = {
             'set': [
                 {

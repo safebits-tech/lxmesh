@@ -12,15 +12,15 @@ import socket
 import struct
 import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
-import pyroute2.netlink.nfnetlink  # type: ignore # No stubs.
-import pyroute2.netlink.rtnl  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.nfnetlink  # type: ignore[import-untyped]
+import pyroute2.netlink.rtnl  # type: ignore[import-untyped]
 from pyroute2.netlink.nfnetlink import nftsocket
 
 from lxmesh.netlink.constants import NFTablesSets
 from lxmesh.netlink.exceptions import NetlinkError
-from lxmesh.netlink.nftables import NFProto, NFTablesRaw
+from lxmesh.netlink.nftables import NFProto
 from lxmesh.netlink.state import NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext
 from lxmesh.netlink.state.mdb import MDBEntryState
 from lxmesh.netlink.state.vxlan import VXLANState
@@ -49,7 +49,7 @@ class SVIState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Netlin
                                              family=family, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSET,
                                              attribute_filters=dict(NFTA_SET_TABLE=context.table_name, NFTA_SET_NAME=set_name))
             attribute_filters = {}
-            attribute_filters[NFTablesRaw.NFTA_SET_ELEM_LIST_TABLE] = context.table_name
+            attribute_filters['NFTA_SET_ELEM_LIST_TABLE'] = context.table_name
             attribute_filters['NFTA_SET_ELEM_LIST_SET'] = set_name
             context.register_nf_subscription(cls.event_elements, pyroute2.netlink.nfnetlink.NFNLGRP_NFTABLES,
                                              family=family, operation=(pyroute2.netlink.nfnetlink.NFNL_SUBSYS_NFTABLES << 8) | nftsocket.NFT_MSG_NEWSETELEM,
@@ -196,7 +196,7 @@ class SVIState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Netlin
     @classmethod
     def event_elements(cls, context: NetlinkEventContext, elements: pyroute2.netlink.nlmsg) -> None:
         family = str(NFProto(elements['nfgen_family'])).lower()
-        table_name = elements.get_attr(NFTablesRaw.NFTA_SET_ELEM_LIST_TABLE)
+        table_name = elements.get_attr('NFTA_SET_ELEM_LIST_TABLE')
         set_name = elements.get_attr('NFTA_SET_ELEM_LIST_SET')
         element_list = elements.get_attr('NFTA_SET_ELEM_LIST_ELEMENTS')
         if element_list is None:
@@ -516,8 +516,7 @@ class SVIState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Netlin
 
         logging.info("Added SVI '{}'.".format(self.name))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: SVIState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         self.add(context)
 
     def delete(self, context: NetlinkOperationContext) -> None:

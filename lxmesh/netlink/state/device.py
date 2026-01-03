@@ -7,10 +7,11 @@ import itertools
 import logging
 import os
 import socket
+import typing
 
-import pyroute2  # type: ignore # No stubs.
-import pyroute2.netlink  # type: ignore # No stubs.
-import pyroute2.netlink.rtnl  # type: ignore # No stubs.
+import pyroute2  # type: ignore[import-untyped]
+import pyroute2.netlink  # type: ignore[import-untyped]
+import pyroute2.netlink.rtnl  # type: ignore[import-untyped]
 
 from lxmesh.netlink import constants
 from lxmesh.netlink.exceptions import NetlinkError
@@ -20,7 +21,7 @@ from lxmesh.state import StateObject
 
 class DeviceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, NetlinkLoadContext, NetlinkOperationContext]):
     name:   str
-    svi:    str = StateObject.field(key=False)
+    svi:    str | None = StateObject.field(key=False)
 
     @classmethod
     def init(cls, context: NetlinkInitialiseContext) -> None:
@@ -228,12 +229,14 @@ class DeviceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Net
                     context.pending_add.add(obj)
 
     def add(self, context: NetlinkOperationContext) -> None:
+        if self.svi is None:
+            raise NetlinkError("cannot set up interface object '{}' without SVI".format(self.name))
         try:
             svi_index = context.svi_map[self.svi].index
         except KeyError:
             svi_index = None
         if svi_index is None:
-            raise NetlinkError("cannot set up interface object without knowing SVI index of '{}'".format(self.svi)) from None
+            raise NetlinkError("cannot set up interface object without knowing SVI index of '{}'".format(self.svi))
         try:
             ifindex = socket.if_nametoindex(self.name)
         except OSError:
@@ -269,8 +272,7 @@ class DeviceState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Net
         else:
             logging.info("Associated interface '{}' to SVI '{}'.".format(self.name, self.svi))
 
-    # FIXME: annotate 'old' with typing.Self in Python 3.11+.
-    def modify(self, context: NetlinkOperationContext, old: DeviceState) -> None:
+    def modify(self, context: NetlinkOperationContext, old: typing.Self) -> None:
         self.add(context)
 
     def delete(self, context: NetlinkOperationContext) -> None:
