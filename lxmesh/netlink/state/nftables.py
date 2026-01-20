@@ -156,33 +156,20 @@ class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
 
     @classmethod
     def load(cls, context: NetlinkLoadContext) -> None:
-        # FIXME: once libnftables supports comment fields for tables.
-        # rc, output, error = nft.json_cmd({'nftables': [{'list': {'tables': {}}}]})
-        # if rc != 0:
-        #     raise NetlinkError("failed to list netfilter tables: {}".format(error))
+        rc, output, error = context.nft.json_cmd({'nftables': [{'list': {'tables': {}}}]})
+        if rc != 0:
+            raise NetlinkError("failed to list netfilter tables: {}".format(error))
 
-        # existing_tables = []
-        # for object_type, object_desc in itertools.chain.from_iterable(map(lambda obj: obj.items(), output['nftables'])):
-        #     if object_type == 'table':
-        #         obj = context.pending_add.get(cls(family=object_desc['family'], name=object_desc['name'], spec=None))
-        #         if obj is None:
-        #             # We do not delete tables we do not care about
-        #             continue
-        #         existing_tables.append(obj)
-
-        existing_tables: list[tuple[NFTableState, str | None]] = []
-        try:
-            for family, table_name, table_comment in context.nft_raw.get_tables():
-                family_name = str(NFProto(family)).lower()
-                obj = context.pending_add.get(cls(family=family_name, name=table_name, spec=None))
+        existing_tables = []
+        for object_type, object_desc in itertools.chain.from_iterable(map(lambda obj: obj.items(), output['nftables'])):
+            if object_type == 'table':
+                obj = context.pending_add.get(cls(family=object_desc['family'], name=object_desc['name'], spec=None))
                 if obj is None:
                     # We do not delete tables we do not care about
                     continue
-                existing_tables.append((obj, table_comment))
-        except pyroute2.NetlinkError as e:
-            raise NetlinkError("failed to enumerate netfilter tables: {} ({})".format(os.strerror(e.code), e.code)) from None
+                existing_tables.append(obj)
 
-        for obj, obj_comment in existing_tables:
+        for obj in existing_tables:
             if obj.spec is None:
                 logging.critical("Cannot manage netfilter table without specification (this is a bug).")
                 continue
@@ -235,17 +222,15 @@ class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
             expected_comment = None
             previous_signature_by_chain: dict[str, bytes] = {}
             for object_type, object_desc in itertools.chain.from_iterable(map(operator.methodcaller('items'), output['nftables'])):
+                if object_type == 'metainfo':
+                    continue
                 if object_type == 'table':
                     if object_desc.get('family') != obj.family:
                         continue
                     if object_desc.get('name') != obj.name:
                         continue
                     try:
-                        expected_comment = obj_comment
-                        if expected_comment is None:
-                            raise KeyError
-                        # FIXME: once libnftables supports comment fields for tables.
-                        # expected_comment = object_desc['comment']
+                        expected_comment = object_desc['comment']
                         comment_signature, generation = expected_comment.split(':', 1)
                         table_generation = int(generation)
                     except KeyError:
@@ -270,7 +255,7 @@ class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
                         break
                     try:
                         # FIXME: once libnftables supports comment fields for all object types.
-                        if False and object_desc['comment'] != expected_comment:
+                        if object_type not in ('set', 'map') and object_desc['comment'] != expected_comment:
                             logging.warning("Netfilter '{}' object in table '{} {}' has a different comment compared to the table.".format(object_type, obj.family, obj.name))
                             break
                     except KeyError:
@@ -321,40 +306,24 @@ class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
         nf_table.generation += 1
         nf_table.comment = '{}:{}'.format(nf_table.signature, nf_table.generation)
 
-        try:
-            context.nft_raw.add_table(NFProto[self.family.upper()], self.name, comment=nf_table.comment, replace=True)
-        except pyroute2.NetlinkError as e:
-            raise NetlinkError("failed to add netfilter table '{} {}': {} ({})".format(self.family, self.name, os.strerror(e.code), e.code)) from None
-
         commands = [
-            # FIXME: once libnftables has support for table comments.
-            # FIXME: kernel 6.3 and newer libnftables has support for destroy,
-            # which ignores inexistent objects.
-            # {
-            #     'add': {
-            #         'table': {
-            #             'family': self.family,
-            #             'name': self.name,
-            #         }
-            #     }
-            # },
-            # {
-            #     'delete': {
-            #         'table': {
-            #             'family': self.family,
-            #             'name': self.name,
-            #         }
-            #     }
-            # },
-            # {
-            #     'create': {
-            #         'table': {
-            #             'family': self.family,
-            #             'name': self.name,
-            #             'comment': nf_table.comment,
-            #         }
-            #     }
-            # }
+            {
+                'destroy': {
+                    'table': {
+                        'family': self.family,
+                        'name': self.name,
+                    }
+                }
+            },
+            {
+                'create': {
+                    'table': {
+                        'family': self.family,
+                        'name': self.name,
+                        'comment': nf_table.comment,
+                    }
+                }
+            },
         ]
         for object_type, object_descriptions in self.spec.items():
             for object_desc in object_descriptions:

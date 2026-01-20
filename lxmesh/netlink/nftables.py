@@ -48,59 +48,6 @@ class NFTablesRaw(pyroute2.NFTSocket):  # type: ignore[misc]  # No stubs.
             raise ValueError("comment is too long")
         return struct.pack('@BB', 0, len(encoded_comment)) + encoded_comment
 
-    def get_tables(self,
-                   family: NFProto = NFProto.UNSPEC) -> collections.abc.Iterator[tuple[NFProto, str, str | None]]:
-        self._nfgen_family = family
-        try:
-            results = self.request_get(nftsocket.nfgen_msg(), nftsocket.NFT_MSG_GETTABLE)
-        finally:
-            self._nfgen_family = NFProto.UNSPEC
-        for result in results:
-            name = result.get_attr('NFTA_TABLE_NAME')
-            if name is None:
-                continue
-            userdata = result.get_attr('NFTA_TABLE_USERDATA')
-            if userdata is not None:
-                try:
-                    comment = self.parse_comment(userdata)
-                except ValueError:
-                    comment = None
-            else:
-                comment = None
-            yield NFProto(result['nfgen_family']), name, comment
-
-    def add_table(self,
-                  family: NFProto,
-                  table_name: str,
-                  comment: str | None = None,
-                  *,
-                  replace: bool = False) -> None:
-        comment_bin = self.build_comment(comment) if comment is not None else None
-
-        self._nfgen_family = family
-        try:
-            self.begin()
-
-            if replace:
-                # FIXME: kernel 6.3 supports NFT_MSG_DESTROYTABLE
-                msg = nftsocket.nft_table_msg()
-                msg['attrs'] = [('NFTA_TABLE_NAME', table_name),
-                                ('NFTA_TABLE_USERDATA', b'\x42\x00')]
-                self.request_put(msg, nftsocket.NFT_MSG_NEWTABLE, pyroute2.netlink.NLM_F_REQUEST | pyroute2.netlink.NLM_F_CREATE)
-                msg = nftsocket.nft_table_msg()
-                msg['attrs'] = [('NFTA_TABLE_NAME', table_name)]
-                self.request_put(msg, nftsocket.NFT_MSG_DELTABLE, pyroute2.netlink.NLM_F_REQUEST)
-
-            msg = nftsocket.nft_table_msg()
-            msg['attrs'] = [('NFTA_TABLE_NAME', table_name)]
-            if comment_bin is not None:
-                msg['attrs'].append(('NFTA_TABLE_USERDATA', comment_bin))
-            self.request_put(msg, nftsocket.NFT_MSG_NEWTABLE, pyroute2.netlink.NLM_F_REQUEST | pyroute2.netlink.NLM_F_CREATE | pyroute2.netlink.NLM_F_EXCL)
-
-            self.commit()
-        finally:
-            self._nfgen_family = NFProto.UNSPEC
-
     def del_table(self,
                   family: NFProto,
                   table_name: str) -> None:
