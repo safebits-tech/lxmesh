@@ -1,1 +1,3 @@
 websockets python3-websockets; PEP386
+pyroute2 python3-pyroute2; PEP386
+nftables python3-nftables; PEP386
