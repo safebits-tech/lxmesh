@@ -30,17 +30,17 @@ lxd:
   # initial-reload-interval:  10s
   id-attribute:             user.lxmesh.id
 
-tags:
+tags: []
   # - name:           mytag
   #   netfilter-mark: 0x0040
 
-netlink:
+netlink: {}
   # reload-interval:  60s
   # reload-jitter:    5s
   # retry-interval:   10s
   # table:            lxmesh
 
-svi:
+svi: []
   # - name:
   #   netfilter-mark:     0
   #   host-routes:        no
