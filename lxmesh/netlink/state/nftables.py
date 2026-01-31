@@ -254,6 +254,8 @@ class NFTableState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, Ne
                         logging.warning("Netfilter table '{} {}' contains unexpected object of type '{}': {}.".format(obj.family, obj.name, object_type, object_desc))
                         break
                     try:
+                        if object_type in ('set', 'map') and 'comment' in object_desc:
+                            logging.warning("Workaround for '{}' type not containing commets no longer required.".format(object_type))
                         # FIXME: once libnftables supports comment fields for all object types.
                         if object_type not in ('set', 'map') and object_desc['comment'] != expected_comment:
                             logging.warning("Netfilter '{}' object in table '{} {}' has a different comment compared to the table.".format(object_type, obj.family, obj.name))

@@ -112,6 +112,10 @@ class MDBEntryState(StateObject[NetlinkEventContext, NetlinkInitialiseContext, N
                 # check for RTM_NEWMDB, just in case this gets fixed in the
                 # future.
                 continue
+            if mdb_msg['event'] == 'RTM_NEWMDB':
+                logging.warning("Workaround for RTM_GETMDB possibly no longer required.")
+            elif mdb_msg['event'] == 'RTM_GETMDB':
+                logging.warning("Workaround for RTM_GETMDB still required.")
             try:
                 svi = next(svi for svi in context.svi_map.values() if svi.index == mdb_msg['ifindex'])
             except StopIteration:
